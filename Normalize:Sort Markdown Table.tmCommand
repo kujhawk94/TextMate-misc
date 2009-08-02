@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>beforeRunningCommand</key>
+	<string>saveActiveFile</string>
+	<key>bundleUUID</key>
+	<string>86C3E109-1FE0-4560-8B02-7A0E7638C2E2</string>
+	<key>command</key>
+	<string>#!/usr/bin/python
+
+import sys
+import re
+
+def just(string, type, n):
+    "Justify a string to length n according to type."
+    
+    if type == '::':
+        return string.center(n)
+    elif type == '-:':
+        return string.rjust(n)
+    elif type == ':-':
+        return string.ljust(n)
+    else:
+        return string
+
+
+def normtable(text):
+    "Aligns the vertical bars in a text table."
+    
+    # Start by turning the text into a list of lines.
+    lines = text.splitlines()
+    rows = len(lines)
+    
+    # Figure out the cell formatting.
+    # First, find the separator line.
+    for i in range(rows):
+        if set(lines[i]).issubset('|:.-'):
+            formatline = lines[i]
+            formatrow = i
+            break
+    
+    # Delete the separator line from the content.
+    del lines[formatrow]
+    
+    # Determine how each column is to be justified. 
+    formatline = formatline.strip('| ')
+    fstrings = formatline.split('|')
+    justify = []
+    for cell in fstrings:
+        ends = cell[0] + cell[-1]
+        if ends == '::':
+            justify.append('::')
+        elif ends == '-:':
+            justify.append('-:')
+        else:
+            justify.append(':-')
+    
+    # Assume the number of columns in the separator line is the number
+    # for the entire table.
+    columns = len(justify)
+    
+    # Extract the content into a matrix.
+    content = []
+    for line in lines:
+        line = line.strip('| ')
+        cells = line.split('|')
+        # Put exactly one space at each end as "bumpers."
+        linecontent = [ ' ' + x.strip() + ' ' for x in cells ]
+        content.append(linecontent)
+    
+    # Append cells to rows that don't have enough.
+    rows = len(content)
+    for i in range(rows):
+        while len(content[i]) &lt; columns:
+            content[i].append('')
+
+    # Get the width of the content in each column. The minimum width will
+    # be 2, because that's the shortest length of a formatting string and
+    # because that matches an empty column with "bumper" spaces.
+    widths = [2] * columns
+    for row in content:
+        for i in range(columns):
+            widths[i] = max(len(row[i]), widths[i])
+    
+    # Remove the first line - assume it's labels
+    # Sort the remaining rows and reinsert the headline row
+    headline = content[0]
+    del content[0]
+
+    match_end_vee = re.compile('\s+\(v\)\s+$')
+    match_end_caret = re.compile('\s+\(\^\)\s+$')
+
+    # default is to sort by the first column in ascending order
+    sortcol = 0
+    sortord = 'asc'
+    for i in range(columns):
+      if match_end_vee.search(headline[i]):
+        sortcol = i
+        break
+      if match_end_caret.search(headline[i]):
+        sortcol = i
+        sortord = 'desc'
+        break
+
+    # Set up the sort def - nested so that it can see the sort column.
+    def compare_columns(a, b):
+      if cmp(sortord, 'desc'): 
+        return cmp(a[sortcol],b[sortcol])
+      return cmp(b[sortcol],a[sortcol])
+    # end compare_columns
+
+    content.sort(compare_columns)
+    content.insert(0,headline)
+
+
+    # Add whitespace to make all the columns the same width and 
+    formatted = []
+    for row in content:
+        formatted.append('|' + '|'.join([ just(s, t, n) for (s, t, n) in zip(row, justify, widths) ]) + '|')
+    
+    # Recreate the format line with the appropriate column widths.
+    formatline = '|' + '|'.join([ s[0] + '-'*(n-2) + s[-1] for (s, n) in zip(justify, widths) ]) + '|'
+    
+    # Insert the formatline back into the table.
+    formatted.insert(formatrow, formatline)
+    
+    # Return the formatted table.
+    return '\n'.join(formatted)
+
+        
+# Read the input, process, and print.
+unformatted = sys.stdin.read()   
+print normtable(unformatted)
+</string>
+	<key>fallbackInput</key>
+	<string>scope</string>
+	<key>input</key>
+	<string>selection</string>
+	<key>keyEquivalent</key>
+	<string>^~@s</string>
+	<key>name</key>
+	<string>Normalize/Sort Markdown Table</string>
+	<key>output</key>
+	<string>replaceSelectedText</string>
+	<key>scope</key>
+	<string>text.html.markdown</string>
+	<key>uuid</key>
+	<string>92282243-2189-4367-AD05-1F18BB205B36</string>
+</dict>
+</plist>
